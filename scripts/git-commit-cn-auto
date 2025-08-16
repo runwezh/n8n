@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# 非交互式中文 commit 脚本（增强版）
+# 功能：如果存在 `.commitconfig`（KEY=VALUE 格式），会读取默认 TYPE/SCOPE。
+# 用法：scripts/git-commit-cn-auto "标题或完整 header" "详细说明（可选）" "关联 issue（可选）"
+# 说明：如果第一个参数不是形如 type(scope): subject 的完整 header，脚本会用默认值自动补全为
+#       "${TYPE:-feat}(${SCOPE:-}) : subject"（若 SCOPE 为空则不加括号）。
+
+set -euo pipefail
+
+if [ $# -lt 1 ]; then
+  echo "用法: $0 \"标题或完整 header\" [详细说明]\" [关联 issue]"
+  exit 2
+fi
+
+# 读取参数
+raw_header="$1"
+body="${2:-}"
+footer="${3:-}"
+
+# 从 .commitconfig 读取默认值（格式：KEY=VALUE），仅支持 KEY 为 TYPE 和 SCOPE
+DEFAULT_TYPE=
+DEFAULT_SCOPE=
+if [ -f ".commitconfig" ]; then
+  while IFS='=' read -r key value; do
+    # 跳过空行或注释
+    case "$key" in
+      ''|\#*) continue ;;
+    esac
+    key=$(echo "$key" | tr -d ' '\n+)
+    value=$(echo "$value" | sed -e 's/^\s*//' -e 's/\s*$//')
+    case "$key" in
+      TYPE) DEFAULT_TYPE="$value" ;;
+      SCOPE) DEFAULT_SCOPE="$value" ;;
+    esac
+  done < .commitconfig
+fi
+
+# 判断 raw_header 是否已经是完整的 header（例如 feat(scope): 描述）
+if [[ "$raw_header" =~ ^[a-z]+(\([^)]+\))?:[[:space:]]+.+ ]]; then
+  header="$raw_header"
+else
+  type_to_use="${DEFAULT_TYPE:-feat}"
+  scope_to_use="${DEFAULT_SCOPE:-}"
+  if [ -n "$scope_to_use" ]; then
+    header="$type_to_use($scope_to_use): $raw_header"
+  else
+    header="$type_to_use: $raw_header"
+  fi
+fi
+
+# 生成临时文件并直接提交（不打开编辑器）
+tmpfile=$(mktemp)
+{
+  echo "$header"
+  echo
+  [ -n "$body" ] && echo -e "$body" && echo
+  [ -n "$footer" ] && echo "$footer"
+} > "$tmpfile"
+
+git commit -F "$tmpfile"
+ret=$?
+rm -f "$tmpfile"
+exit $ret

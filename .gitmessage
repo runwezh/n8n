@@ -1,0 +1,8 @@
+类型(可选范围)：feat/fix/docs/chore/refactor/test/ci
+作用域(可选)：例如：auth、api、ui
+一句话描述（中文，50 字以内）：
+
+详述（可选）：
+- 改动点 1
+- 改动点 2
+关联 issue（可选）：

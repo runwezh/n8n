@@ -1,0 +1,5 @@
+# .commitconfig - 项目级默认 commit 类型和作用域
+# 支持的 KEY: TYPE, SCOPE
+# 示例：默认类型为 feat，默认作用域为 api
+TYPE=feat
+SCOPE=api
